@@ -1,0 +1,40 @@
+# Docker Compose configuration for PostgreSQL 17 database service
+# Following Compose Specification best practices (maintainability, security, resource control)
+
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: postgres_db
+    restart: unless-stopped
+    shm_size: 128mb # allocated shared memory for PostgreSQL from /dev/shm
+
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+
+    env_file:
+      - .env
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro,z # z for SELinux
+    networks:
+      - db_network
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-egatherer}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+
+networks:
+  db_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
