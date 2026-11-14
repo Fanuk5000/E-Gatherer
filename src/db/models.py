@@ -28,6 +28,7 @@ class Store(Base):
     """Monitored e-commerce stores (e.g. Telemart, Brain, ITbox)."""
 
     __tablename__ = "stores"
+    __table_args__ = {"schema": "catalog"}
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
@@ -49,12 +50,13 @@ class Category(Base):
     """Hierarchical catalog categories (e.g. PC Components -> Graphics Cards)."""
 
     __tablename__ = "categories"
+    __table_args__ = {"schema": "catalog"}
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(120), nullable=False)
     slug: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
     parent_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("categories.id", ondelete="SET NULL"), nullable=True
+        Integer, ForeignKey("catalog.categories.id", ondelete="SET NULL"), nullable=True
     )
 
     parent: Mapped[Category | None] = relationship(
@@ -80,11 +82,12 @@ class Product(Base):
             postgresql_using="gin",
             postgresql_ops={"model_name": "gin_trgm_ops"},
         ),
+        {"schema": "catalog"},
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     category_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("categories.id", ondelete="RESTRICT"), nullable=False
+        Integer, ForeignKey("catalog.categories.id", ondelete="RESTRICT"), nullable=False
     )
     brand: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
     model_name: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
@@ -110,14 +113,15 @@ class StoreProduct(Base):
     __tablename__ = "store_products"
     __table_args__ = (
         UniqueConstraint("store_id", "external_id", name="uq_store_external_id"),
+        {"schema": "catalog"},
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     store_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("stores.id", ondelete="CASCADE"), nullable=False
+        Integer, ForeignKey("catalog.stores.id", ondelete="CASCADE"), nullable=False
     )
     product_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("products.id", ondelete="CASCADE"), nullable=False
+        Integer, ForeignKey("catalog.products.id", ondelete="CASCADE"), nullable=False
     )
     external_id: Mapped[str] = mapped_column(String(150), nullable=False)
     url: Mapped[str] = mapped_column(Text, nullable=False)
@@ -149,11 +153,14 @@ class PriceHistory(Base):
             "store_product_id",
             text("recorded_at DESC"),
         ),
+        {"schema": "pricing"},
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     store_product_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("store_products.id", ondelete="CASCADE"), nullable=False
+        Integer,
+        ForeignKey("catalog.store_products.id", ondelete="CASCADE"),
+        nullable=False,
     )
     price_uah: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     price_usd_computed: Mapped[Decimal | None] = mapped_column(
@@ -177,6 +184,7 @@ class ExchangeRate(Base):
         UniqueConstraint(
             "currency_code", "exchange_date", name="uq_currency_exchange_date"
         ),
+        {"schema": "pricing"},
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -195,6 +203,7 @@ class ScrapeLog(Base):
     """Audit trail of scheduled scraping executions."""
 
     __tablename__ = "scrape_logs"
+    __table_args__ = {"schema": "etl"}
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     scraper_name: Mapped[str] = mapped_column(String(80), nullable=False, index=True)

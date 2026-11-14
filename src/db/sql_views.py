@@ -1,7 +1,7 @@
 """SQL definitions for PostgreSQL analytical views queried by Grafana."""
 
 CREATE_V_DAILY_PRICE_AGGREGATES = """
-CREATE OR REPLACE VIEW v_daily_price_aggregates AS
+CREATE OR REPLACE VIEW analytics.v_daily_price_aggregates AS
 SELECT
     p.id AS product_id,
     p.brand,
@@ -18,10 +18,10 @@ SELECT
     ROUND(AVG(ph.price_usd_computed), 2) AS avg_price_usd,
     COUNT(DISTINCT sp.store_id) AS active_stores_count,
     COUNT(ph.id) AS data_points_count
-FROM price_history ph
-JOIN store_products sp ON sp.id = ph.store_product_id
-JOIN products p ON p.id = sp.product_id
-JOIN categories c ON c.id = p.category_id
+FROM pricing.price_history ph
+JOIN catalog.store_products sp ON sp.id = ph.store_product_id
+JOIN catalog.products p ON p.id = sp.product_id
+JOIN catalog.categories c ON c.id = p.category_id
 GROUP BY
     p.id,
     p.brand,
@@ -31,7 +31,7 @@ GROUP BY
 """
 
 CREATE_V_PRICE_GROWTH = """
-CREATE OR REPLACE VIEW v_price_growth AS
+CREATE OR REPLACE VIEW analytics.v_price_growth AS
 SELECT
     product_id,
     brand,
@@ -49,7 +49,7 @@ SELECT
         ) * 100,
         2
     ) AS daily_change_percent
-FROM v_daily_price_aggregates;
+FROM analytics.v_daily_price_aggregates;
 """
 
 ANALYTICAL_VIEWS_DDL: tuple[str, ...] = (
