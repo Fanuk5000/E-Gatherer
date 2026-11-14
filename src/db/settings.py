@@ -6,7 +6,7 @@ from dataclasses import dataclass
 class DatabaseSettings:
     """PostgreSQL connection settings loaded from environment variables."""
 
-    user: str = os.getenv("POSTGRES_USER", "postgres")
+    user: str = os.getenv("POSTGRES_USER", "postgres")  # DSN user
     password: str = os.getenv("POSTGRES_PASSWORD", "postgres")
     db: str = os.getenv("POSTGRES_DB", "egatherer")
     host: str = os.getenv("POSTGRES_HOST", "localhost")

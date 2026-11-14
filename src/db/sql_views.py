@@ -52,7 +52,7 @@ SELECT
 FROM v_daily_price_aggregates;
 """
 
-ANALYTICAL_VIEWS_DDL = [
+ANALYTICAL_VIEWS_DDL: tuple[str, ...] = (
     CREATE_V_DAILY_PRICE_AGGREGATES,
     CREATE_V_PRICE_GROWTH,
-]
+)
