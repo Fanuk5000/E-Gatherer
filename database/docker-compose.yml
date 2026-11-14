@@ -16,7 +16,8 @@ services:
 
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro,z # z for SELinux
+      - ./init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro,z # z for SELinux
+      - ./02-roles.sh:/docker-entrypoint-initdb.d/02-roles.sh:ro,z
     networks:
       - db_network
 
