@@ -31,7 +31,7 @@ def setup_logging(
     # Rotating File Handler (5MB max size, 3 backup files to protect HDD)
     file_handler = RotatingFileHandler(
         filename=file_path,
-        maxBytes=5 * 1024 * 1024,
+        maxBytes=5242880,  # 5 * 1024 * 1024,
         backupCount=3,
         encoding="utf-8",
     )
