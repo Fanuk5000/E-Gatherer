@@ -4,9 +4,9 @@ from importlib import import_module
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from src.parsers.base import BaseParser
-    from src.parsers.currency import NbuCurrencyParser
-    from src.parsers.schemas import ExchangeRateItem, ScrapedPriceItem
+    from src.collectors.base import BaseParser
+    from src.collectors.currency import NbuCurrencyParser
+    from src.collectors.schemas import ExchangeRateItem, ScrapedPriceItem
 
 _EXPORTS: dict[str, tuple[str, str]] = {
     "BaseParser": ("src.parsers.base", "BaseParser"),

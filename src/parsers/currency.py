@@ -8,9 +8,9 @@ from typing import Any
 import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.collectors.base import BaseParser
+from src.collectors.schemas import ExchangeRateItem
 from src.db.repository import DatabaseRepository
-from src.parsers.base import BaseParser
-from src.parsers.schemas import ExchangeRateItem
 
 logger = logging.getLogger(__name__)
 
