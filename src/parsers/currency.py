@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from collections.abc import Collection
 from datetime import datetime
@@ -26,9 +27,11 @@ class NbuCurrencyParser(BaseParser[list[dict[str, Any]], ExchangeRateItem]):
         url: str = NBU_EXCHANGE_URL,
         timeout: float = 15.0,
     ) -> None:
-        self.target_currencies = frozenset(c.upper() for c in target_currencies)
-        self.url = url
-        self.timeout = timeout
+        if isinstance(target_currencies, str):
+            target_currencies = (target_currencies,)
+        self.__target_currencies = frozenset(c.upper() for c in target_currencies)
+        self.__url = url
+        self.__timeout = timeout
 
     @property
     def name(self) -> str:
@@ -36,8 +39,8 @@ class NbuCurrencyParser(BaseParser[list[dict[str, Any]], ExchangeRateItem]):
 
     async def fetch(self) -> list[dict[str, Any]]:
         """Fetches official daily NBU exchange rates JSON payload."""
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
-            response = await client.get(self.url)
+        async with httpx.AsyncClient(timeout=self.__timeout) as client:
+            response = await client.get(self.__url)
             response.raise_for_status()
             payload = response.json()
 
@@ -54,7 +57,7 @@ class NbuCurrencyParser(BaseParser[list[dict[str, Any]], ExchangeRateItem]):
 
         for entry in raw_data:
             code = str(entry.get("cc", "")).upper()
-            if code not in self.target_currencies:
+            if code not in self.__target_currencies:
                 continue
 
             title = str(entry.get("txt", ""))
@@ -88,3 +91,11 @@ class NbuCurrencyParser(BaseParser[list[dict[str, Any]], ExchangeRateItem]):
                 exchange_date=item.exchange_date,
             )
         return len(items)
+
+
+if __name__ == "__main__":
+    # small test for parsing currency rate
+    nbu_parser = NbuCurrencyParser(("USD",))
+    raw_data = asyncio.run(nbu_parser.fetch())
+    items: list[ExchangeRateItem] = nbu_parser.parse(raw_data)
+    print(items)
