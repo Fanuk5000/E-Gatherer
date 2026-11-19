@@ -20,7 +20,9 @@ async def _explain(
 ) -> None:
     """Runs EXPLAIN (ANALYZE, BUFFERS) and prints plan and wall-clock time."""
     started = time.perf_counter()
-    result = await session.execute(text(f"EXPLAIN (ANALYZE, BUFFERS) {sql}"), params or {})
+    result = await session.execute(
+        text(f"EXPLAIN (ANALYZE, BUFFERS) {sql}"), params or {}
+    )
     elapsed_ms = (time.perf_counter() - started) * 1000
     plan_lines = [row[0] for row in result.all()]
 
@@ -108,7 +110,7 @@ if __name__ == "__main__":
         "--threshold",
         type=float,
         default=0.2,
-        help="pg_trgm similarity threshold for % operator.",
+        help="pg_trgm similarity threshold for percent operator.",
     )
     args = parser.parse_args()
     asyncio.run(_run_benchmark(queries=args.queries, similarity_limit=args.threshold))
