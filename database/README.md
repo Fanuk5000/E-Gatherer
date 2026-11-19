@@ -124,6 +124,39 @@ docker exec -it postgres_db psql -U "$GRAFANA_READER_USER" -d "$POSTGRES_DB" \
 
 ---
 
+## Inspecting Scraped Data & Analytical Views
+
+After running `make scrape-save` (or `uv run python -m src.collectors.websites.webscraper_io --save`), inspect stored records via `psql`:
+
+```sql
+-- Latest scraper runs
+SELECT id, scraper_name, status, items_scraped, started_at, finished_at
+FROM etl.scrape_logs
+ORDER BY id DESC
+LIMIT 5;
+
+-- Scraped products with store links and latest prices
+SELECT p.id, p.brand, p.model_name, sp.external_id, ph.price_uah, ph.price_usd_computed, ph.recorded_at
+FROM catalog.products p
+JOIN catalog.store_products sp ON sp.product_id = p.id
+JOIN pricing.price_history ph ON ph.store_product_id = sp.id
+ORDER BY ph.recorded_at DESC
+LIMIT 10;
+
+-- Analytical and matching views
+SELECT * FROM analytics.v_daily_price_aggregates LIMIT 10;
+SELECT * FROM analytics.v_product_match_bare_sql LIMIT 10;
+SELECT * FROM analytics.v_product_match_trgm LIMIT 10;
+```
+
+Run bare SQL (`ILIKE` / `LIKE`) vs `pg_trgm` (`EXPLAIN (ANALYZE, BUFFERS)`) benchmark from project root:
+
+```bash
+uv run python -m scripts.benchmark_trgm --queries Mercedes Mercdes Ferari Toyta
+```
+
+---
+
 ## Stopping & Teardown
 
 ### Stop Service (preserves data)
