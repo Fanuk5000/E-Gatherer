@@ -7,8 +7,8 @@ if TYPE_CHECKING:
     from src.collectors.api.currency import NbuCurrencyParser
     from src.collectors.base import BaseParser
     from src.collectors.schemas import ExchangeRateItem, ScrapedPriceItem
-    from src.collectors.web.playwright_base import BasePlaywrightScraper
-    from src.collectors.web.webscraper import WebScraperLoadMoreScraper
+    from src.collectors.websites.playwright_base import BasePlaywrightScraper
+    from src.collectors.websites.webscraper_io import WebScraperLoadMoreScraper
 
 _EXPORTS: dict[str, tuple[str, str]] = {
     "BaseParser": ("src.collectors.base", "BaseParser"),
@@ -20,7 +20,7 @@ _EXPORTS: dict[str, tuple[str, str]] = {
     "NbuCurrencyParser": ("src.collectors.api.currency", "NbuCurrencyParser"),
     "ScrapedPriceItem": ("src.collectors.schemas", "ScrapedPriceItem"),
     "WebScraperLoadMoreScraper": (
-        "src.collectors.web.webscraper",
+        "src.collectors.websites.webscraper_io",
         "WebScraperLoadMoreScraper",
     ),
 }
