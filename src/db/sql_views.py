@@ -52,7 +52,41 @@ SELECT
 FROM analytics.v_daily_price_aggregates;
 """
 
+CREATE_V_PRODUCT_MATCH_BARE_SQL = """
+CREATE OR REPLACE VIEW analytics.v_product_match_bare_sql AS
+SELECT
+    a.id AS source_product_id,
+    a.model_name AS source_model_name,
+    b.id AS matched_product_id,
+    b.model_name AS matched_model_name
+FROM catalog.products a
+JOIN catalog.products b
+    ON a.id < b.id
+   AND (
+       LOWER(a.model_name) LIKE '%' || LOWER(NULLIF(SPLIT_PART(b.model_name, ' ', 1), '')) || '%'
+       OR LOWER(b.model_name) LIKE '%' || LOWER(NULLIF(SPLIT_PART(a.model_name, ' ', 1), '')) || '%'
+   );
+"""
+
+CREATE_V_PRODUCT_MATCH_TRGM = """
+CREATE OR REPLACE VIEW analytics.v_product_match_trgm AS
+SELECT
+    a.id AS source_product_id,
+    a.model_name AS source_model_name,
+    b.id AS matched_product_id,
+    b.model_name AS matched_model_name,
+    ROUND(similarity(a.model_name, b.model_name)::numeric, 3) AS trgm_similarity,
+    ROUND(word_similarity(a.model_name, b.model_name)::numeric, 3) AS trgm_word_similarity
+FROM catalog.products a
+JOIN catalog.products b
+    ON a.id < b.id
+   AND a.model_name % b.model_name
+ORDER BY trgm_similarity DESC;
+"""
+
 ANALYTICAL_VIEWS_DDL: tuple[str, ...] = (
     CREATE_V_DAILY_PRICE_AGGREGATES,
     CREATE_V_PRICE_GROWTH,
+    CREATE_V_PRODUCT_MATCH_BARE_SQL,
+    CREATE_V_PRODUCT_MATCH_TRGM,
 )
