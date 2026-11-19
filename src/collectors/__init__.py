@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 _EXPORTS: dict[str, tuple[str, str]] = {
     "BaseParser": ("src.collectors.base", "BaseParser"),
     "BasePlaywrightScraper": (
-        "src.collectors.web.playwright_base",
+        "src.collectors.websites.playwright_base",
         "BasePlaywrightScraper",
     ),
     "ExchangeRateItem": ("src.collectors.schemas", "ExchangeRateItem"),

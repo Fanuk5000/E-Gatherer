@@ -24,7 +24,7 @@ DEFAULT_CATEGORY_SLUG = "webscraper-load-more"
 DEFAULT_USD_TO_UAH = Decimal("41.50")
 
 LOAD_MORE_BUTTON_SELECTOR = ".load-more-btn.ecommerce-items-scroll-more"
-PRODUCT_CARD_SELECTOR = "div.product-wrapper, div.thumbnail"
+PRODUCT_CARD_SELECTOR = "div.card.test-sites-card"
 
 
 def _split_brand_and_model(title: str) -> tuple[str, str]:
@@ -35,8 +35,9 @@ def _split_brand_and_model(title: str) -> tuple[str, str]:
 
 
 def _parse_decimal_price(raw_price: str) -> Decimal | None:
-    """Extracts numeric price from currency string such as '$1,139.54'."""
-    match = re.search(r"[\d,]+(?:\.\d+)?", raw_price)
+    """Extracts numeric price from strings like 'USD 228 511' or '$1,139.54'."""
+    compact = re.sub(r"(?<=\d)\s+(?=\d)", "", raw_price)
+    match = re.search(r"[\d,]+(?:\.\d+)?", compact)
     if not match:
         return None
     normalized = match.group(0).replace(",", "")
@@ -102,14 +103,20 @@ class WebScraperLoadMoreScraper(BasePlaywrightScraper[str, ScrapedPriceItem]):
         seen_ids: set[str] = set()
 
         for card in soup.select(PRODUCT_CARD_SELECTOR):
-            title_el = card.select_one("a.title")
-            price_el = card.select_one(".price")
+            title_el = card.select_one("h3.card-title a")
+            heading_el = card.select_one("h3.card-title")
+            price_el = card.select_one(".price [itemprop='price']") or card.select_one(
+                ".price"
+            )
             if title_el is None or price_el is None:
                 continue
 
-            raw_title = str(title_el.get("title") or title_el.get_text(" ", strip=True))
+            raw_title = str(
+                (heading_el.get("title") if heading_el else None)
+                or title_el.get_text(" ", strip=True)
+            )
             title = " ".join(raw_title.split())
-            usd_price = _parse_decimal_price(price_el.get_text(strip=True))
+            usd_price = _parse_decimal_price(price_el.get_text(" ", strip=True))
             if not title or usd_price is None:
                 continue
 
@@ -120,6 +127,12 @@ class WebScraperLoadMoreScraper(BasePlaywrightScraper[str, ScrapedPriceItem]):
                 continue
             seen_ids.add(external_id)
 
+            badge_el = card.select_one(".availability .badge")
+            badge_text = badge_el.get_text(" ", strip=True).lower() if badge_el else ""
+            is_in_stock = (
+                "available: 0" not in badge_text and "out of stock" not in badge_text
+            )
+
             price_uah = (usd_price * self._usd_to_uah).quantize(Decimal("0.01"))
             items.append(
                 ScrapedPriceItem(
@@ -127,7 +140,7 @@ class WebScraperLoadMoreScraper(BasePlaywrightScraper[str, ScrapedPriceItem]):
                     name=title,
                     price_uah=price_uah,
                     url=full_url,
-                    is_in_stock=True,
+                    is_in_stock=is_in_stock,
                 )
             )
 
