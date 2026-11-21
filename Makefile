@@ -24,7 +24,7 @@ setup-deps:
 	uv sync
 	@case " $(OS_ID) $(OS_LIKE) " in \
 		*" ubuntu "*|*" debian "*) \
-	3.14.10-slim, 3.14-slim		echo "Installing Playwright Firefox + apt system deps ($(OS_ID))..."; \
+			echo "Installing Playwright Firefox + apt system deps ($(OS_ID))..."; \
 			sudo apt-get update && uv run playwright install --with-deps firefox ;; \
 		*" fedora "*|*" rhel "*|*" centos "*) \
 			echo "Installing Playwright Firefox + dnf system deps ($(OS_ID))..."; \
