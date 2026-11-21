@@ -3,7 +3,7 @@
 OS_ID := $(shell . /etc/os-release 2>/dev/null && echo "$$ID" || uname -s)
 OS_LIKE := $(shell . /etc/os-release 2>/dev/null && echo "$$ID_LIKE" || true)
 
-.PHONY: help setup setup-deps currency scrape scrape-save bench
+.PHONY: help setup setup-deps currency scrape scrape-save bench bench-large
 
 help:
 	@echo "Detected OS: $(OS_ID)"
@@ -14,6 +14,7 @@ help:
 	@echo "  make scrape       Dry-run webscraper.io Playwright Gecko scraper"
 	@echo "  make scrape-save  Run webscraper.io scraper and save to PostgreSQL"
 	@echo "  make bench        Compare bare SQL vs pg_trgm queries and views"
+	@echo "  make bench-large  Compare bare SQL vs pg_trgm GIN on 100k synthetic rows"
 
 setup:
 	uv sync
@@ -23,7 +24,7 @@ setup-deps:
 	uv sync
 	@case " $(OS_ID) $(OS_LIKE) " in \
 		*" ubuntu "*|*" debian "*) \
-			echo "Installing Playwright Firefox + apt system deps ($(OS_ID))..."; \
+	3.14.10-slim, 3.14-slim		echo "Installing Playwright Firefox + apt system deps ($(OS_ID))..."; \
 			sudo apt-get update && uv run playwright install --with-deps firefox ;; \
 		*" fedora "*|*" rhel "*|*" centos "*) \
 			echo "Installing Playwright Firefox + dnf system deps ($(OS_ID))..."; \
@@ -44,6 +45,9 @@ scrape-save:
 
 bench:
 	uv run python -m scripts.benchmark_trgm
+
+bench-large:
+	uv run python -m scripts.benchmark_trgm_large
 
 # Future test target:
 # .PHONY: test
