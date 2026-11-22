@@ -1,3 +1,4 @@
+import argparse
 import asyncio
 import logging
 from collections.abc import Collection
@@ -10,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.collectors.base import BaseParser
 from src.collectors.schemas import ExchangeRateItem
+from src.db.connection import close_db, init_db
 from src.db.repository import DatabaseRepository
 
 logger = logging.getLogger(__name__)
@@ -93,9 +95,38 @@ class NbuCurrencyParser(BaseParser[list[dict[str, Any]], ExchangeRateItem]):
         return len(items)
 
 
+async def _main(save_to_db: bool, currencies: tuple[str, ...]) -> None:
+    parser = NbuCurrencyParser(target_currencies=currencies)
+    if save_to_db:
+        await init_db()
+        try:
+            saved = await parser.run()
+            print(f"Saved {saved} exchange rates to PostgreSQL.")
+        finally:
+            await close_db()
+        return
+
+    raw_data = await parser.fetch()
+    items = parser.parse(raw_data)
+    print(f"Fetched {len(items)} NBU exchange rate(s):")
+    for item in items:
+        print(f"  - {item.currency_code} -> {item.rate_to_uah} UAH ({item.exchange_date})")
+
+
 if __name__ == "__main__":
-    # small test for parsing currency rate
-    nbu_parser = NbuCurrencyParser(("USD",))
-    raw_data = asyncio.run(nbu_parser.fetch())
-    items: list[ExchangeRateItem] = nbu_parser.parse(raw_data)
-    print(items)
+    arg_parser = argparse.ArgumentParser(description="Run NBU currency API collector.")
+    arg_parser.add_argument(
+        "--currencies",
+        nargs="+",
+        default=list(DEFAULT_TARGET_CURRENCIES),
+        help="Target currency codes (default: USD EUR PLN GBP).",
+    )
+    arg_parser.add_argument(
+        "--save",
+        action="store_true",
+        help="Persist exchange rates via BaseParser.run() into PostgreSQL.",
+    )
+    cli_args = arg_parser.parse_args()
+    asyncio.run(
+        _main(save_to_db=cli_args.save, currencies=tuple(cli_args.currencies))
+    )
