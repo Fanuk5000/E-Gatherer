@@ -84,9 +84,36 @@ JOIN catalog.products b
 ORDER BY trgm_similarity DESC;
 """
 
+CREATE_V_SCRAPE_LOGS = """
+CREATE OR REPLACE VIEW analytics.v_scrape_logs AS
+SELECT
+    id,
+    scraper_name,
+    status,
+    items_scraped,
+    error_message,
+    started_at,
+    finished_at,
+    ROUND(EXTRACT(EPOCH FROM (finished_at - started_at))::numeric, 2) AS duration_seconds
+FROM etl.scrape_logs;
+"""
+
+CREATE_V_EXCHANGE_RATES = """
+CREATE OR REPLACE VIEW analytics.v_exchange_rates AS
+SELECT
+    id,
+    currency_code,
+    rate_to_uah,
+    exchange_date,
+    recorded_at
+FROM pricing.exchange_rates;
+"""
+
 ANALYTICAL_VIEWS_DDL: tuple[str, ...] = (
     CREATE_V_DAILY_PRICE_AGGREGATES,
     CREATE_V_PRICE_GROWTH,
     CREATE_V_PRODUCT_MATCH_BARE_SQL,
     CREATE_V_PRODUCT_MATCH_TRGM,
+    CREATE_V_SCRAPE_LOGS,
+    CREATE_V_EXCHANGE_RATES,
 )
