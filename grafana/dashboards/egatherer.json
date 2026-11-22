@@ -41,11 +41,11 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  (day::timestamp AT TIME ZONE 'Europe/Kyiv') AS \"time\",\n  model_name || ' (avg)' AS metric,\n  avg_price_uah AS value\nFROM analytics.v_daily_price_aggregates\nORDER BY day ASC;",
+          "rawSql": "SELECT\n  (day::timestamp AT TIME ZONE 'Europe/Kyiv') AS \"time\",\n  brand AS metric,\n  ROUND(AVG(avg_price_uah), 2) AS value\nFROM analytics.v_daily_price_aggregates\nGROUP BY day, brand\nORDER BY day ASC, brand ASC;",
           "refId": "A"
         }
       ],
-      "title": "Daily Average Product Prices (UAH)",
+      "title": "Daily Average Brand Prices (UAH)",
       "type": "timeseries"
     },
     {
