@@ -6,7 +6,7 @@ CONTAINER_CMD ?= $(shell command -v podman >/dev/null 2>&1 && echo podman || ech
 IMAGE_NAME ?= localhost/e-gatherer
 IMAGE_TAG ?= 0.0.1
 
-.PHONY: help setup setup-deps currency scrape scrape-save bench bench-large run run-once docker-build test test-verbose
+.PHONY: help setup setup-deps currency scrape scrape-save bench bench-large run run-once docker-build up down logs run-container-once test test-verbose
 
 help:
 	@echo "Detected OS: $(OS_ID)"
@@ -21,6 +21,10 @@ help:
 	@echo "  make run          Start daily randomized (01:00-04:00 Kyiv) ETL scheduler"
 	@echo "  make run-once     Run full ETL pipeline once and exit"
 	@echo "  make docker-build Build container image ($(IMAGE_NAME):$(IMAGE_TAG))"
+	@echo "  make up           Start compose stack (db + scraper) in background"
+	@echo "  make down         Stop compose stack"
+	@echo "  make logs         Follow compose stack logs"
+	@echo "  make run-container-once Run one-off ETL cycle inside scraper container"
 	@echo "  make test         Run unit test suite with pytest"
 	@echo "  make test-verbose Run unit test suite with verbose output"
 
@@ -65,6 +69,18 @@ run-once:
 
 docker-build:
 	$(CONTAINER_CMD) build -t $(IMAGE_NAME):$(IMAGE_TAG) .
+
+up:
+	$(CONTAINER_CMD) compose up -d
+
+down:
+	$(CONTAINER_CMD) compose down
+
+logs:
+	$(CONTAINER_CMD) compose logs -f
+
+run-container-once:
+	$(CONTAINER_CMD) compose run --rm scraper python -m src.main --once
 
 test:
 	uv run python -m pytest
