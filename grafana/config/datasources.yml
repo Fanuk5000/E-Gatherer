@@ -1,0 +1,18 @@
+apiVersion: 1
+
+datasources:
+  - name: E-Gatherer PostgreSQL
+    uid: egatherer-postgres
+    type: postgres
+    access: proxy
+    isDefault: true
+    url: db:5432
+    user: ${GRAFANA_READER_USER}
+    secureJsonData:
+      password: ${GRAFANA_READER_PASSWORD}
+    jsonData:
+      database: ${POSTGRES_DB}
+      sslmode: disable
+      postgresVersion: 1700
+      timescaledb: false
+    editable: false

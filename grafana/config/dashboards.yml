@@ -1,0 +1,14 @@
+apiVersion: 1
+
+providers:
+  - name: E-Gatherer Dashboards
+    orgId: 1
+    folder: E-Gatherer
+    folderUid: egatherer
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: false

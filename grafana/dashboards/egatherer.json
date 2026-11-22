@@ -1,0 +1,169 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "egatherer-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUAH"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "egatherer-postgres"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  (day::timestamp AT TIME ZONE 'Europe/Kyiv') AS \"time\",\n  model_name || ' (avg)' AS metric,\n  avg_price_uah AS value\nFROM analytics.v_daily_price_aggregates\nORDER BY day ASC;",
+          "refId": "A"
+        }
+      ],
+      "title": "Daily Average Product Prices (UAH)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "egatherer-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "id": 2,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "egatherer-postgres"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  (exchange_date::timestamp AT TIME ZONE 'Europe/Kyiv') AS \"time\",\n  currency_code AS metric,\n  rate_to_uah AS value\nFROM analytics.v_exchange_rates\nORDER BY exchange_date ASC;",
+          "refId": "A"
+        }
+      ],
+      "title": "NBU Exchange Rates (UAH)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "egatherer-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 9
+      },
+      "id": 3,
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "egatherer-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  TO_CHAR(day, 'YYYY-MM-DD') AS day,\n  brand,\n  model_name,\n  category_name,\n  median_price_uah,\n  prev_day_median_price,\n  daily_change_percent\nFROM analytics.v_price_growth\nORDER BY v_price_growth.day DESC, model_name ASC\nLIMIT 100;",
+          "refId": "A"
+        }
+      ],
+      "title": "Daily Price Growth & Median",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "egatherer-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 9
+      },
+      "id": 4,
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "egatherer-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  id,\n  scraper_name,\n  status,\n  items_scraped,\n  duration_seconds,\n  started_at,\n  finished_at,\n  error_message\nFROM analytics.v_scrape_logs\nORDER BY id DESC\nLIMIT 50;",
+          "refId": "A"
+        }
+      ],
+      "title": "ETL Scrape Logs",
+      "type": "table"
+    }
+  ],
+  "refresh": "1m",
+  "schemaVersion": 39,
+  "tags": ["egatherer", "postgres", "etl"],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-30d",
+    "to": "now+2d"
+  },
+  "timepicker": {},
+  "timezone": "Europe/Kyiv",
+  "title": "E-Gatherer Price & ETL Analytics",
+  "uid": "egatherer-overview",
+  "version": 1
+}
