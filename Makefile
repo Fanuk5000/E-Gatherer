@@ -6,14 +6,15 @@ CONTAINER_CMD ?= $(shell command -v podman >/dev/null 2>&1 && echo podman || ech
 IMAGE_NAME ?= localhost/e-gatherer
 IMAGE_TAG ?= 0.0.1
 
-.PHONY: help setup setup-deps currency scrape scrape-save bench bench-large run run-once docker-build up down logs run-container-once test test-verbose
+.PHONY: help setup setup-deps currency currency-save scrape scrape-save bench bench-large run run-once docker-build up down logs run-container-once test test-verbose
 
 help:
 	@echo "Detected OS: $(OS_ID)"
 	@echo "Targets:"
 	@echo "  make setup        Sync uv deps and install Playwright Firefox binary"
 	@echo "  make setup-deps   Sync uv deps and install OS libs + Firefox (Ubuntu/Fedora)"
-	@echo "  make currency     Run NBU currency API collector"
+	@echo "  make currency     Dry-run NBU currency API collector"
+	@echo "  make currency-save Run NBU currency collector and save to PostgreSQL"
 	@echo "  make scrape       Dry-run webscraper.io Playwright Gecko scraper"
 	@echo "  make scrape-save  Run webscraper.io scraper and save to PostgreSQL"
 	@echo "  make bench        Compare bare SQL vs pg_trgm queries and views"
@@ -48,6 +49,9 @@ setup-deps:
 
 currency:
 	uv run python -m src.collectors.api.currency
+
+currency-save:
+	uv run python -m src.collectors.api.currency --save
 
 scrape:
 	uv run python -m src.collectors.websites.webscraper_io
