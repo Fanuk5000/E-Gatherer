@@ -6,7 +6,7 @@
 ![Playwright](https://img.shields.io/badge/Playwright-Firefox%20(Gecko)-2EAD33?style=flat-square&logo=playwright&logoColor=white)
 ![httpx](https://img.shields.io/badge/httpx-AsyncClient-005571?style=flat-square)
 ![Grafana](https://img.shields.io/badge/Grafana-Analytics-F46800?style=flat-square&logo=grafana&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-Planned-2496ED?style=flat-square&logo=docker&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=flat-square&logo=docker&logoColor=white)
 ![uv](https://img.shields.io/badge/uv-Package%20Manager-DE5FE9?style=flat-square)
 
 **E-Gatherer** — асинхронна ETL-система для автоматизованого збору цін із вебресурсів та курсів валют НБУ, збереження часових рядів (time-series) у PostgreSQL і побудови аналітичних представлень (views) для візуалізації в Grafana.
@@ -17,7 +17,7 @@
 
 ## Архітектура бази даних (PostgreSQL 17)
 
-Ініціалізація розширення `pg_trgm` виконується в [`database/init.sql`](database/init.sql), а схема таблиць та індексів описана у [`src/db/models.py`](src/db/models.py):
+Ініціалізація розширення `pg_trgm` та ролей виконується в [`database/01-init.sql`](database/01-init.sql) і [`database/02-roles.sh`](database/02-roles.sh), а схема таблиць та індексів описана у [`src/db/models.py`](src/db/models.py):
 
 - **`catalog.stores`** — перелік відстежуваних магазинів (`name`, `base_url`, `is_active`).
 - **`catalog.categories`** — ієрархія категорій товарів (`name`, `slug`, `parent_id`).
@@ -33,6 +33,9 @@
 - `analytics.v_price_growth` — відстеження щоденної динаміки цін через віконну функцію `LAG()`.
 - `analytics.v_product_match_bare_sql` — базове зіставлення назв товарів через `LIKE '%' || ... || '%'` (повільне сканування без індексу).
 - `analytics.v_product_match_trgm` — нечітке зіставлення назв через `pg_trgm` (`%`, `similarity()`, `word_similarity()`).
+- `analytics.v_scrape_logs` — журнал запусків ETL (`etl.scrape_logs`) із тривалістю виконання `duration_seconds` для Grafana.
+- `analytics.v_exchange_rates` — офіційні курси валют НБУ (`pricing.exchange_rates`) у схемі `analytics`.
+- `analytics.v_latest_item_prices` — актуальні ціни товарів за кожним магазином у UAH, USD та EUR.
 
 ---
 
@@ -40,21 +43,61 @@
 
 ```text
 E-gatherer/
-├── database/              # SQL-ініціалізація PostgreSQL (pg_trgm)
-├── grafana/               # Налаштування та дашборди Grafana
-├── scripts/               # Утиліти та бенчмарк (bare SQL vs pg_trgm)
+├── database/
+│   ├── 01-init.sql            # Ініціалізація розширення pg_trgm
+│   ├── 02-roles.sh            # Least-privilege ролі (etl_worker, grafana_reader) та схеми
+│   ├── .env.example           # Шаблон змінних середовища
+│   └── README.md              # Інструкції з БД, перевірки контейнерів і ручного запуску
+├── grafana/
+│   ├── config/
+│   │   ├── datasources.yml    # Автоконфігурація PostgreSQL джерела (grafana_reader)
+│   │   └── dashboards.yml     # Провайдер дашбордів
+│   └── dashboards/
+│       └── egatherer.json     # Дашборд цін, курсів НБУ та ETL-логів
+├── imgs/
+│   └── grafana-example.png    # Скриншот прикладу роботи дашборду Grafana
+├── scripts/
+│   ├── benchmark_trgm.py      # Бенчмарк bare SQL vs pg_trgm на реальній БД
+│   ├── benchmark_trgm_large.py # Бенчмарк на 100 000 синтетичних рядків
+│   └── seed_history.py        # Заповнення 30d історії курсів НБУ та цін
 ├── src/
 │   ├── collectors/
-│   │   ├── api/           # Легкі асинхронні API-колектори (НБУ, Brain)
-│   │   ├── web/           # Playwright (Gecko) вебскрапери
-│   │   ├── base.py        # Базовий контракт BaseParser
-│   │   └── schemas.py     # Імутабельні DTO (slots=True, frozen=True)
-│   └── db/                # SQLAlchemy 2.0 моделі, репозиторій, SQL views
-├── todos/                 # Архітектурний план проєкту
-├── Makefile               # Локальні команди запуску та налаштування
-├── pyproject.toml         # Залежності та метадані Python
-└── Dockerfile             # Контейнеризація застосунку (у розробці)
+│   │   ├── api/               # Асинхронні API-колектори (currency.py, brain.py)
+│   │   ├── websites/          # Playwright (Firefox/Gecko) вебскрапери (playwright_base.py, webscraper_io.py)
+│   │   ├── base.py            # Базовий контракт BaseParser (fetch -> parse -> save + логи)
+│   │   └── schemas.py         # Імутабельні DTO (slots=True, frozen=True)
+│   ├── db/                    # SQLAlchemy 2.0 моделі, підключення, репозиторій, SQL views
+│   ├── logger_config.py       # Ротовані логи (logs/app.log) + stdout
+│   ├── main.py                # Точка входу ETL runner (--once / планувальник)
+│   └── scheduler.py           # Щоденний випадковий планувальник (01:00–04:00 Europe/Kyiv)
+├── tests/
+│   ├── test_playwright_base.py # Юніт-тести оптимізацій Playwright
+│   ├── test_scheduler.py      # Юніт-тести планувальника та ізоляції помилок
+│   └── test_seed_history.py   # Юніт-тести історичного заповнення
+├── todos/                     # Архітектурний план і нотатки проєкту
+├── .dockerignore              # Виключення секретів та зайвих файлів із Docker-білду
+├── docker-compose.yml         # Стек сервісів (db, scraper, grafana)
+├── Dockerfile                 # Образ застосунку (Python 3.14 + Playwright Firefox)
+├── Makefile                   # Команди налаштування, збірки, запуску, сиду та тестів
+├── pyproject.toml             # Залежності та метадані Python (uv)
+└── requirements.txt           # Зафіксовані залежності для Docker pip install
 ```
+
+---
+
+## Приклад роботи системи (Grafana + Docker Compose)
+
+Запуск повного стеку (`db`, `scraper`, `grafana`) та історичного заповнення за 30 днів:
+
+```bash
+make docker-build
+make up
+make seed-container
+```
+
+Після запуску дашборд доступний за адресою `http://127.0.0.1:3000`:
+
+![Приклад дашборду Grafana](imgs/grafana-example.png)
 
 ---
 
@@ -144,5 +187,3 @@ make bench-large
    - На великій БД пошук одразу стрибає на потрібні кілька сторінок замість читання всієї таблиці.
 4. **Зіставлення товарів (`v_product_match_*`):**
    - Без індексу порівняння кожного товару з кожним (`N × N`) на 100 тис. рядків дає мільярди перевірок підрядків; з `pg_trgm` БД перевіряє лише пари зі спільними триграмами.
-
-> **Примітка:** Docker-збірка (`Dockerfile`) запланована для фінального розгортання разом із сервісами PostgreSQL і Grafana.
