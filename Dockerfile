@@ -10,11 +10,12 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends tzdata ca-certificates \
+    && apt-get install -y --no-install-recommends tzdata ca-certificates libatomic1 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt \
+RUN pip install --upgrade pip \
+    && pip install --no-cache-dir -r requirements.txt \
     && playwright install --with-deps firefox \
     && chmod -R o+rx "${PLAYWRIGHT_BROWSERS_PATH}" \
     && rm -rf /var/lib/apt/lists/*
