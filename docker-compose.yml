@@ -1,4 +1,4 @@
-# Docker Compose configuration for PostgreSQL 17 database service
+# Docker Compose configuration for E-gatherer stack (PostgreSQL 17 + ETL Scraper)
 # Following Compose Specification best practices (maintainability, security, resource control)
 
 services:
@@ -33,9 +33,43 @@ services:
           cpus: "1.0"
           memory: 512M
 
+  scraper:
+    image: localhost/e-gatherer:0.0.1
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: egatherer_scraper
+    restart: unless-stopped
+    shm_size: 1g # allocated shared memory for headless Firefox IPC
+
+    depends_on:
+      db:
+        condition: service_healthy
+
+    env_file:
+      - .env
+
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_PORT: "5432"
+      TZ: Europe/Kyiv
+
+    volumes:
+      - scraper_logs:/app/logs
+
+    networks:
+      - db_network
+
+    deploy:
+      resources:
+        limits:
+          cpus: "1.5"
+          memory: 1536M
+
 networks:
   db_network:
     driver: bridge
 
 volumes:
   postgres_data:
+  scraper_logs:
