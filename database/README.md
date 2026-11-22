@@ -1,8 +1,4 @@
-# PostgreSQL 17 Database Service
-
-Standalone Docker Compose service for local development and production database hosting.
-
----
+# PostgreSQL 17.2 Database Service
 
 ## Quick Start
 
@@ -153,6 +149,71 @@ Run bare SQL (`ILIKE` / `LIKE`) vs `pg_trgm` (`EXPLAIN (ANALYZE, BUFFERS)`) benc
 
 ```bash
 uv run python -m scripts.benchmark_trgm --queries Mercedes Mercdes Ferari Toyta
+```
+
+---
+
+## Container Stack & Service Connectivity (Scraper <-> DB)
+
+Run from the **project root** (examples use `podman`; replace with `docker` if using Docker).
+
+### 1. Start Stack & Verify Container Health
+
+```bash
+make up
+podman compose ps
+```
+
+Confirm `postgres_db` shows `healthy` and `egatherer_scraper` is `Up`.
+
+### 2. Verify DNS & TCP Reachability (`scraper` -> `db:5432`)
+
+`python:3.14-slim` omits `ping`/`nc`, so check via Python stdlib inside `egatherer_scraper`:
+
+```bash
+podman exec egatherer_scraper python -c "import socket; print(socket.getaddrinfo('db', 5432)[0][4]); s=socket.create_connection(('db', 5432), 3); print('TCP OK'); s.close()"
+```
+
+*(If DNS resolution fails on Fedora Podman, verify `aardvark-dns` is installed and both containers share `db_network` via `podman network inspect`.)*
+
+### 3. Verify SQLAlchemy / `asyncpg` Auth (`etl_worker` -> `db`)
+
+```bash
+podman exec egatherer_scraper python -c "import asyncio; from sqlalchemy import text; from src.db.connection import engine, close_db
+async def f():
+    async with engine.connect() as c:
+        row = (await c.execute(text('SELECT current_user, inet_server_addr()'))).one()
+        print('DB OK:', tuple(row))
+    await close_db()
+asyncio.run(f())"
+```
+
+### 4. End-to-End One-Shot Scrape & DB Audit Check
+
+```bash
+make run-container-once
+podman exec postgres_db psql -U postgres -d egatherer -c "SELECT scraper_name, status, items_scraped, finished_at FROM etl.scrape_logs ORDER BY id DESC LIMIT 5;"
+```
+
+### 5. Manual Collector Triggers (Currency & WebScraper)
+
+Run individual collectors manually on **host** (`Makefile`):
+
+```bash
+# Dry-run (fetch & parse only, no DB write)
+make currency
+make scrape
+
+# Persist to PostgreSQL + etl.scrape_logs
+make currency-save
+make scrape-save
+```
+
+Or run directly inside **container** (`podman compose`; omit `--save` for dry-run):
+
+```bash
+podman compose run --rm scraper python -m src.collectors.api.currency --save
+podman compose run --rm scraper python -m src.collectors.websites.webscraper_io --save
 ```
 
 ---
