@@ -34,7 +34,7 @@ services:
           memory: 512M
 
   scraper:
-    image: localhost/e-gatherer:0.0.2
+    image: localhost/e-gatherer:latest
     build:
       context: .
       dockerfile: Dockerfile

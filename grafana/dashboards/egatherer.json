@@ -149,6 +149,75 @@
       ],
       "title": "ETL Scrape Logs",
       "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "egatherer-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "price_uah"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "currencyUAH"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "price_usd"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "currencyUSD"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "price_eur"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "currencyEUR"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 17
+      },
+      "id": 5,
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "egatherer-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  store_name,\n  brand,\n  model_name,\n  category_name,\n  price_uah,\n  price_usd,\n  price_eur,\n  is_in_stock,\n  recorded_at,\n  url\nFROM analytics.v_latest_item_prices\nORDER BY model_name ASC\nLIMIT 200;",
+          "refId": "A"
+        }
+      ],
+      "title": "Latest Item Prices (UAH / USD / EUR)",
+      "type": "table"
     }
   ],
   "refresh": "1m",

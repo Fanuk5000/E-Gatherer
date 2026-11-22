@@ -109,6 +109,50 @@ SELECT
 FROM pricing.exchange_rates;
 """
 
+CREATE_V_LATEST_ITEM_PRICES = """
+CREATE OR REPLACE VIEW analytics.v_latest_item_prices AS
+WITH latest_prices AS (
+    SELECT DISTINCT ON (ph.store_product_id)
+        ph.store_product_id,
+        ph.price_uah,
+        ph.recorded_at
+    FROM pricing.price_history ph
+    ORDER BY ph.store_product_id, ph.recorded_at DESC, ph.id DESC
+),
+latest_rates AS (
+    SELECT
+        MAX(rate_to_uah) FILTER (WHERE currency_code = 'USD') AS usd_rate,
+        MAX(rate_to_uah) FILTER (WHERE currency_code = 'EUR') AS eur_rate
+    FROM (
+        SELECT DISTINCT ON (er.currency_code)
+            er.currency_code,
+            er.rate_to_uah
+        FROM pricing.exchange_rates er
+        WHERE er.currency_code IN ('USD', 'EUR')
+        ORDER BY er.currency_code, er.exchange_date DESC, er.id DESC
+    ) r
+)
+SELECT
+    s.name AS store_name,
+    p.brand,
+    p.model_name,
+    c.name AS category_name,
+    lp.price_uah,
+    ROUND(lp.price_uah / NULLIF(lr.usd_rate, 0), 2) AS price_usd,
+    ROUND(lp.price_uah / NULLIF(lr.eur_rate, 0), 2) AS price_eur,
+    lr.usd_rate,
+    lr.eur_rate,
+    sp.is_in_stock,
+    lp.recorded_at,
+    sp.url
+FROM latest_prices lp
+JOIN catalog.store_products sp ON sp.id = lp.store_product_id
+JOIN catalog.stores s ON s.id = sp.store_id
+JOIN catalog.products p ON p.id = sp.product_id
+JOIN catalog.categories c ON c.id = p.category_id
+CROSS JOIN latest_rates lr;
+"""
+
 ANALYTICAL_VIEWS_DDL: tuple[str, ...] = (
     CREATE_V_DAILY_PRICE_AGGREGATES,
     CREATE_V_PRICE_GROWTH,
@@ -116,4 +160,5 @@ ANALYTICAL_VIEWS_DDL: tuple[str, ...] = (
     CREATE_V_PRODUCT_MATCH_TRGM,
     CREATE_V_SCRAPE_LOGS,
     CREATE_V_EXCHANGE_RATES,
+    CREATE_V_LATEST_ITEM_PRICES,
 )
