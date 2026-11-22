@@ -10,7 +10,6 @@ logs
 database
 grafana
 todos
-scripts
 tests
 Makefile
 README.md
