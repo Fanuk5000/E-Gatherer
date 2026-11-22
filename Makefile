@@ -6,7 +6,7 @@ CONTAINER_CMD ?= $(shell command -v podman >/dev/null 2>&1 && echo podman || ech
 IMAGE_NAME ?= localhost/e-gatherer
 IMAGE_TAG ?= 0.0.1
 
-.PHONY: help setup setup-deps currency currency-save scrape scrape-save bench bench-large run run-once docker-build up down logs run-container-once test test-verbose
+.PHONY: help setup setup-deps currency currency-save scrape scrape-save bench bench-large seed seed-container run run-once docker-build up down logs run-container-once test test-verbose
 
 help:
 	@echo "Detected OS: $(OS_ID)"
@@ -19,6 +19,8 @@ help:
 	@echo "  make scrape-save  Run webscraper.io scraper and save to PostgreSQL"
 	@echo "  make bench        Compare bare SQL vs pg_trgm queries and views"
 	@echo "  make bench-large  Compare bare SQL vs pg_trgm GIN on 100k synthetic rows"
+	@echo "  make seed         Backfill 30d NBU rates + price history from host"
+	@echo "  make seed-container Backfill 30d NBU rates + price history inside scraper container"
 	@echo "  make run          Start daily randomized (01:00-04:00 Kyiv) ETL scheduler"
 	@echo "  make run-once     Run full ETL pipeline once and exit"
 	@echo "  make docker-build Build container image ($(IMAGE_NAME):$(IMAGE_TAG))"
@@ -64,6 +66,12 @@ bench:
 
 bench-large:
 	uv run python -m scripts.benchmark_trgm_large
+
+seed:
+	uv run python -m scripts.seed_history
+
+seed-container:
+	$(CONTAINER_CMD) compose run --rm scraper python -m scripts.seed_history
 
 run:
 	uv run python -m src.main
