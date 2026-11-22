@@ -2,8 +2,11 @@
 
 OS_ID := $(shell . /etc/os-release 2>/dev/null && echo "$$ID" || uname -s)
 OS_LIKE := $(shell . /etc/os-release 2>/dev/null && echo "$$ID_LIKE" || true)
+CONTAINER_CMD ?= $(shell command -v podman >/dev/null 2>&1 && echo podman || echo docker)
+IMAGE_NAME ?= localhost/e-gatherer
+IMAGE_TAG ?= 0.0.1
 
-.PHONY: help setup setup-deps currency scrape scrape-save bench bench-large run run-once test test-verbose
+.PHONY: help setup setup-deps currency scrape scrape-save bench bench-large run run-once docker-build test test-verbose
 
 help:
 	@echo "Detected OS: $(OS_ID)"
@@ -17,6 +20,7 @@ help:
 	@echo "  make bench-large  Compare bare SQL vs pg_trgm GIN on 100k synthetic rows"
 	@echo "  make run          Start daily randomized (01:00-04:00 Kyiv) ETL scheduler"
 	@echo "  make run-once     Run full ETL pipeline once and exit"
+	@echo "  make docker-build Build container image ($(IMAGE_NAME):$(IMAGE_TAG))"
 	@echo "  make test         Run unit test suite with pytest"
 	@echo "  make test-verbose Run unit test suite with verbose output"
 
@@ -58,6 +62,9 @@ run:
 
 run-once:
 	uv run python -m src.main --once
+
+docker-build:
+	$(CONTAINER_CMD) build -t $(IMAGE_NAME):$(IMAGE_TAG) .
 
 test:
 	uv run python -m pytest
